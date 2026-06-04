@@ -558,23 +558,7 @@ function closeModal(){
   document.getElementById('modal-overlay').classList.remove('show');
   pendingAction=null;
 }
-const modalConfirmBtn=document.getElementById('modal-confirm');
-if(modalConfirmBtn)modalConfirmBtn.onclick=function(){
-  if(pendingAction==='day'){
-    Object.keys(S.done).forEach(k=>{if(k.startsWith('d'))delete S.done[k]});
-    KIDS.forEach(k=>S.todayPts[k.id]=0);
-    showToast('New day started!');
-  }else if(pendingAction==='week'){
-    Object.keys(S.done).forEach(k=>{if(k.startsWith('d')||k.startsWith('w'))delete S.done[k]});
-    Object.keys(S.bonusClaimed).forEach(k=>delete S.bonusClaimed[k]);
-    KIDS.forEach(k=>S.todayPts[k.id]=0);
-    showToast('New week started! Bonus pool refreshed.');
-  }else if(pendingAction==='reset'){
-    Object.assign(S,DEFAULT_STATE());
-    showToast('Everything reset.');
-  }
-  closeModal();saveState();renderAll();
-};
+
 
 function showToast(msg){
   const t=document.getElementById('toast');
@@ -584,6 +568,23 @@ function showToast(msg){
 
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('datebar').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  const modalConfirmBtn=document.getElementById('modal-confirm');
+  if(modalConfirmBtn)modalConfirmBtn.onclick=function(){
+    if(pendingAction==='day'){
+      Object.keys(S.done).forEach(k=>{if(k.startsWith('d'))delete S.done[k]});
+      KIDS.forEach(k=>S.todayPts[k.id]=0);
+      showToast('New day started!');
+    }else if(pendingAction==='week'){
+      Object.keys(S.done).forEach(k=>{if(k.startsWith('d')||k.startsWith('w'))delete S.done[k]});
+      Object.keys(S.bonusClaimed).forEach(k=>delete S.bonusClaimed[k]);
+      KIDS.forEach(k=>S.todayPts[k.id]=0);
+      showToast('New week started! Bonus pool refreshed.');
+    }else if(pendingAction==='reset'){
+      Object.assign(S,DEFAULT_STATE());
+      showToast('Everything reset.');
+    }
+    closeModal();saveState();renderAll();
+  };
   syncNow();
   setInterval(syncNow,60000);
 });
@@ -846,5 +847,5 @@ async function loadCalendars() {
           <select id="honey-priority"><option value="high">High</option><option value="med" selected>Medium</option><option value="low">Low</option></select>
           <button onclick="addHoney()"><i class="ti ti-plus"></i> Add</button>
         </div>
-      </div>
-      <div id="tab-histor
+
+       
