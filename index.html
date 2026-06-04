@@ -266,12 +266,24 @@ function parseCSV(text){
 }
 
 async function fetchSheet(url){
-  const res=await fetch(url);
-  if(!res.ok)throw new Error('HTTP '+res.status);
-  return parseCSV(await res.text());
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),8000);
+  try{
+    const res=await fetch(url,{signal:controller.signal});
+    clearTimeout(timer);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    return parseCSV(await res.text());
+  }catch(e){
+    clearTimeout(timer);
+    throw e;
+  }
 }
 
 async function syncNow(){
+  // Show saved data immediately while syncing
+  if(KIDS.length===0 && S.pts){
+    // Try to restore kid list from last known state
+  }
   setSyncStatus('loading','Syncing with Google Sheets...');
   try{
     const [kidsData,choresData,rewardsData,honeyData]=await Promise.all([
@@ -310,6 +322,10 @@ async function syncNow(){
       priority:(r.priority||r.Priority||'med').toLowerCase()
     }));
     const now=new Date();
+    S.kidsCache=KIDS;
+    S.choresCache=CHORES;
+    S.rewardsCache=REWARDS;
+    S.honeyCache=HONEY_SHEET;
     setSyncStatus('ok','Synced · '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
     saveState();renderAll();
   }catch(err){
@@ -643,6 +659,18 @@ function showToast(msg){
 }
 
 document.getElementById('datebar').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+
+// Render immediately with any saved state, then sync
+const cached = loadState();
+if(cached && cached.kidsCache){
+  KIDS = cached.kidsCache;
+  CHORES = cached.choresCache || {daily:[],weekly:[],monthly:[],bonus:[]};
+  REWARDS = cached.rewardsCache || [];
+  HONEY_SHEET = cached.honeyCache || [];
+  renderAll();
+  setSyncStatus('ok','Loaded saved data — syncing...');
+}
+
 syncNow();
 setInterval(syncNow,60000);
 
@@ -768,4 +796,36 @@ async function loadCalendars() {
   }
 
   if (sortedDays.length === 0 && errors.length === 0) {
-  
+    html += '<div class="cal-empty">No events in the next 5 days 🎉</div>';
+  }
+
+  // Add empty today if no events
+  if (!byDay[todayKey]) {
+    const dl = dayLabel(todayKey);
+    html += '<div class="cal-day-block"><div class="cal-day-label today">Today</div><div class="cal-empty">No events today</div></div>';
+  }
+
+  sortedDays.forEach(dayKey => {
+    const dl = dayLabel(dayKey);
+    const evts = byDay[dayKey].sort((a,b) => (a.start||'').localeCompare(b.start||''));
+    html += '<div class="cal-day-block">';
+    html += '<div class="cal-day-label' + (dl.isToday ? ' today' : '') + '">' + dl.label + '</div>';
+    evts.forEach(e => {
+      html += '<div class="cal-event">';
+      html += '<div class="cal-event-bar" style="background:' + e.calColor + '"></div>';
+      html += '<div class="cal-event-body">';
+      html += '<div class="cal-event-title">' + (e.title||'(no title)') + '</div>';
+      html += '<div class="cal-event-time">' + fmtEventTime(e.start, e.end) + ' &nbsp;·&nbsp; <span style="color:' + e.calColor + '">' + e.calName + '</span></div>';
+      html += '</div></div>';
+    });
+    html += '</div>';
+  });
+
+  el.innerHTML = html;
+}
+
+// Calendar loads via showTab above
+
+</script>
+</body>
+</html>
