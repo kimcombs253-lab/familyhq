@@ -302,15 +302,14 @@ async function syncNow(){
     CHORES={daily:[],weekly:[],monthly:[],bonus:[]};
     choresData.forEach(r=>{
       const freq=(r.frequency||r.freq||'').toLowerCase();
-      // Build who list from per-kid columns if present
-      let who = (r.who||r.Who||'').toLowerCase();
-      const perKid = [];
+      // Build who list purely from per-kid columns
+      const perKid=[];
       KIDS.forEach(k=>{
-        const val=(r[k.id]||r[k.name]||'').toLowerCase();
+        const val=(r[k.id]||r[k.name]||'').toLowerCase().trim();
         if(val==='yes'||val==='y')perKid.push(k.id);
       });
-      if(perKid.length>0) who=perKid.join(',');
-      else if(!who) who='all';
+      // Fall back to all kids if no per-kid columns filled in
+      const who=perKid.length>0?perKid.join(','):'all';
       const c={id:r.id||r.ID,name:r.name||r.Name,pts:parseInt(r.points||r.pts||0),who:who};
       if(CHORES[freq])CHORES[freq].push(c);
     });
