@@ -192,7 +192,6 @@
           <h3><i class="ti ti-calendar" style="font-size:16px;vertical-align:-2px;margin-right:5px"></i>Upcoming events</h3>
           <div class="cal-legend">
             <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#534AB7"></div>Kim &amp; Kids</div>
-            <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#E8A020"></div>PTA</div>
             <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#1A8CD8"></div>Weather</div>
           </div>
         </div>
@@ -678,7 +677,6 @@ async function fetchWithProxy(url) {
 }
 const CALENDARS = [
   { name: 'Kim & Kids', url: 'https://calendar.google.com/calendar/ical/kimcombs253%40gmail.com/public/basic.ics', color: '#534AB7' },
-  { name: 'PTA', url: 'https://calendar.google.com/calendar/ical/whittierpantherspta%40gmail.com/public/basic.ics', color: '#E8A020' },
   { name: 'Weather', url: 'https://ical.meteomatics.com/calendar/Tacoma/47.255131_-122.441964/us/meteomat.ics', color: '#1A8CD8' }
 ];
 
@@ -706,20 +704,42 @@ function parseICAL(text) {
 
 function parseICALDate(str) {
   if (!str) return null;
-  str = str.replace(/[^0-9T]/g, '');
-  if (str.length === 8) str += 'T000000';
-  const y = str.substr(0,4), mo = str.substr(4,2), d = str.substr(6,2);
-  const h = str.substr(9,2)||'00', mi = str.substr(11,2)||'00';
-  return new Date(parseInt(y), parseInt(mo)-1, parseInt(d), parseInt(h), parseInt(mi));
+  // If ends with Z it's UTC — parse as ISO so JS converts to local time correctly
+  if (str.endsWith('Z')) {
+    const iso = str.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/,'$1-$2-$3T$4:$5:$6Z');
+    return new Date(iso);
+  }
+  // If has timezone offset like +0000 or -0700, strip it and treat as UTC then offset
+  const tzMatch = str.match(/([+-])(\d{2})(\d{2})$/);
+  if (tzMatch) {
+    const sign = tzMatch[1]==='+' ? 1 : -1;
+    const offsetMins = sign * (parseInt(tzMatch[2])*60 + parseInt(tzMatch[3]));
+    const clean = str.replace(/[^0-9T]/g,'');
+    const y=clean.substr(0,4),mo=clean.substr(4,2),d=clean.substr(6,2);
+    const h=clean.substr(9,2)||'00',mi=clean.substr(11,2)||'00',s=clean.substr(13,2)||'00';
+    const utcMs = Date.UTC(parseInt(y),parseInt(mo)-1,parseInt(d),parseInt(h),parseInt(mi),parseInt(s));
+    return new Date(utcMs - offsetMins*60000);
+  }
+  // All-day date (no time component)
+  if (str.length === 8 || !str.includes('T')) {
+    const y=str.substr(0,4),mo=str.substr(4,2),d=str.substr(6,2);
+    return new Date(parseInt(y),parseInt(mo)-1,parseInt(d));
+  }
+  // Floating local time — treat as local
+  const clean = str.replace(/[^0-9T]/g,'');
+  const y=clean.substr(0,4),mo=clean.substr(4,2),d=clean.substr(6,2);
+  const h=clean.substr(9,2)||'00',mi=clean.substr(11,2)||'00';
+  return new Date(parseInt(y),parseInt(mo)-1,parseInt(d),parseInt(h),parseInt(mi));
 }
 
 function fmtEventTime(start, end) {
   if (!start) return '';
   const s = parseICALDate(start);
   if (!s) return '';
-  const isAllDay = start.length === 8 || start.endsWith('T000000Z') || (!start.includes('T'));
-  if (isAllDay) return 'All day';
-  const timeOpts = {hour:'numeric', minute:'2-digit', hour12:true};
+  // All-day: no T component or pure date
+  const isAllDay = str => str.length === 8 || !str.includes('T');
+  if (isAllDay(start)) return 'All day';
+  const timeOpts = {hour:'numeric', minute:'2-digit', hour12:true, timeZone:'America/Los_Angeles'};
   if (end) {
     const e = parseICALDate(end);
     if (e) return s.toLocaleTimeString([],timeOpts) + ' – ' + e.toLocaleTimeString([],timeOpts);
@@ -729,6 +749,17 @@ function fmtEventTime(start, end) {
 
 function getDayKey(str) {
   if (!str) return '';
+  // For UTC times, convert to Pacific before extracting the day key
+  if (str.endsWith('Z') || str.includes('T')) {
+    const d = parseICALDate(str);
+    if (d) {
+      const pacific = new Date(d.toLocaleString('en-US', {timeZone:'America/Los_Angeles'}));
+      const y = pacific.getFullYear();
+      const mo = String(pacific.getMonth()+1).padStart(2,'0');
+      const day = String(pacific.getDate()).padStart(2,'0');
+      return ''+y+mo+day;
+    }
+  }
   const clean = str.replace(/[^0-9T]/g,'');
   return clean.substr(0,8);
 }
@@ -786,40 +817,4 @@ async function loadCalendars() {
 
   let html = '';
   if (errors.length) {
-    html += '<div class="cal-error"><i class="ti ti-alert-circle" style="vertical-align:-2px;margin-right:4px"></i>Could not load: ' + errors.join(', ') + '</div>';
-  }
-
-  if (sortedDays.length === 0 && errors.length === 0) {
-    html += '<div class="cal-empty">No events in the next 5 days 🎉</div>';
-  }
-
-  // Add empty today if no events
-  if (!byDay[todayKey]) {
-    const dl = dayLabel(todayKey);
-    html += '<div class="cal-day-block"><div class="cal-day-label today">Today</div><div class="cal-empty">No events today</div></div>';
-  }
-
-  sortedDays.forEach(dayKey => {
-    const dl = dayLabel(dayKey);
-    const evts = byDay[dayKey].sort((a,b) => (a.start||'').localeCompare(b.start||''));
-    html += '<div class="cal-day-block">';
-    html += '<div class="cal-day-label' + (dl.isToday ? ' today' : '') + '">' + dl.label + '</div>';
-    evts.forEach(e => {
-      html += '<div class="cal-event">';
-      html += '<div class="cal-event-bar" style="background:' + e.calColor + '"></div>';
-      html += '<div class="cal-event-body">';
-      html += '<div class="cal-event-title">' + (e.title||'(no title)') + '</div>';
-      html += '<div class="cal-event-time">' + fmtEventTime(e.start, e.end) + ' &nbsp;·&nbsp; <span style="color:' + e.calColor + '">' + e.calName + '</span></div>';
-      html += '</div></div>';
-    });
-    html += '</div>';
-  });
-
-  el.innerHTML = html;
-}
-
-// Calendar loads via showTab above
-
-</script>
-</body>
-</html>
+    html += '<div class="cal-error"><i class="ti ti-alert-circle" style="vertical-a
