@@ -668,10 +668,11 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove('show'),2500);
 }
 
-document.getElementById('datebar').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-
-syncNow();
-setInterval(syncNow,60000);
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('datebar').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  syncNow();
+  setInterval(syncNow,60000);
+});
 
 async function fetchWithProxy(url) {
   const fnUrl = 'https://polite-starburst-0398c1.netlify.app/.netlify/functions/ical?url=' + encodeURIComponent(url);
@@ -846,4 +847,4 @@ async function loadCalendars() {
       html += '<div class="cal-event-bar" style="background:' + e.calColor + '"></div>';
       html += '<div class="cal-event-body">';
       html += '<div class="cal-event-title">' + (e.title||'(no title)') + '</div>';
-      html += '<div class="cal-event-time">' + fmtEventTime(e.start, e.end) + ' &nbsp;·&nbsp; <span style="color:' + e.calColor + 
+      html += '<div class="cal-event-time">' + fmtEventTime(e.
