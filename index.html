@@ -282,11 +282,7 @@ async function fetchSheet(url){
 }
 
 async function syncNow(){
-  // Show saved data immediately while syncing
-  if(KIDS.length===0 && S.pts){
-    // Try to restore kid list from last known state
-  }
-  setSyncStatus('loading','Syncing with Google Sheets...');
+  setSyncStatus('loading','Syncing...');
   try{
     const [kidsData,choresData,rewardsData,honeyData]=await Promise.all([
       fetchSheet(URLS.kids),fetchSheet(URLS.chores),
@@ -331,7 +327,14 @@ async function syncNow(){
     setSyncStatus('ok','Synced · '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
     saveState();renderAll();
   }catch(err){
-    setSyncStatus('err','Sync failed — showing saved data. Check wifi.');
+    setSyncStatus('err','Sync failed — showing saved data.');
+    // Still render with whatever we have cached
+    if(KIDS.length===0 && S.kidsCache){
+      KIDS=S.kidsCache;
+      CHORES=S.choresCache||{daily:[],weekly:[],monthly:[],bonus:[]};
+      REWARDS=S.rewardsCache||[];
+      HONEY_SHEET=S.honeyCache||[];
+    }
     renderAll();
   }
 }
@@ -662,17 +665,6 @@ function showToast(msg){
 
 document.getElementById('datebar').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
 
-// Render immediately with any saved state, then sync
-const cached = loadState();
-if(cached && cached.kidsCache){
-  KIDS = cached.kidsCache;
-  CHORES = cached.choresCache || {daily:[],weekly:[],monthly:[],bonus:[]};
-  REWARDS = cached.rewardsCache || [];
-  HONEY_SHEET = cached.honeyCache || [];
-  renderAll();
-  setSyncStatus('ok','Loaded saved data — syncing...');
-}
-
 syncNow();
 setInterval(syncNow,60000);
 
@@ -817,4 +809,17 @@ async function loadCalendars() {
       html += '<div class="cal-event-bar" style="background:' + e.calColor + '"></div>';
       html += '<div class="cal-event-body">';
       html += '<div class="cal-event-title">' + (e.title||'(no title)') + '</div>';
-      html += '<div class="cal-event-time">' + fmtEventTime(
+      html += '<div class="cal-event-time">' + fmtEventTime(e.start, e.end) + ' &nbsp;·&nbsp; <span style="color:' + e.calColor + '">' + e.calName + '</span></div>';
+      html += '</div></div>';
+    });
+    html += '</div>';
+  });
+
+  el.innerHTML = html;
+}
+
+// Calendar loads via showTab above
+
+</script>
+</body>
+</html>
