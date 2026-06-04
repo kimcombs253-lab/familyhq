@@ -296,6 +296,9 @@ async function syncNow(){
       if(S.pts[k.id]===undefined)S.pts[k.id]=0;
       if(S.todayPts[k.id]===undefined)S.todayPts[k.id]=0;
     });
+    console.log('Kids data:', JSON.stringify(kidsData));
+    console.log('Chores count:', choresData.length);
+    console.log('First chore row:', JSON.stringify(choresData[0]));
     CHORES={daily:[],weekly:[],monthly:[],bonus:[]};
     choresData.forEach(r=>{
       const freq=(r.frequency||r.freq||'').toLowerCase();
