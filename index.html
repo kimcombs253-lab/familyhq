@@ -194,8 +194,10 @@ async function syncNow(){
       fetchSheet(URLS.rewards),fetchSheet(URLS.honey)
     ]);
     KIDS=kidsData.map(r=>({
-      id:r.id||r.ID,name:r.name||r.Name,
-      age:r.age||r.Age,color:r.color||r.Color||'#534AB7'
+      id:(r.id||r.ID||'').toLowerCase().trim(),
+      name:r.name||r.Name,
+      age:r.age||r.Age,
+      color:r.color||r.Color||'#534AB7'
     }));
     KIDS.forEach(k=>{
       if(S.pts[k.id]===undefined)S.pts[k.id]=0;
@@ -213,7 +215,8 @@ async function syncNow(){
       // Build who list purely from per-kid columns
       const perKid=[];
       KIDS.forEach(k=>{
-        const val=(r[k.id]||r[k.name]||'').toLowerCase().trim();
+        // Try lowercase id, original id, and lowercase name to handle case mismatch
+        const val=(r[k.id.toLowerCase()]||r[k.id]||r[k.name.toLowerCase()]||r[k.name]||'').toLowerCase().trim();
         if(val==='yes'||val==='y')perKid.push(k.id);
       });
       // Fall back to all kids if no per-kid columns filled in
@@ -550,7 +553,8 @@ function closeModal(){
   document.getElementById('modal-overlay').classList.remove('show');
   pendingAction=null;
 }
-document.getElementById('modal-confirm').onclick=function(){
+const modalConfirmBtn=document.getElementById('modal-confirm');
+if(modalConfirmBtn)modalConfirmBtn.onclick=function(){
   if(pendingAction==='day'){
     Object.keys(S.done).forEach(k=>{if(k.startsWith('d'))delete S.done[k]});
     KIDS.forEach(k=>S.todayPts[k.id]=0);
@@ -842,14 +846,4 @@ async function loadCalendars() {
         <div class="section-label">Point history</div>
         <div class="hist-list" id="hist-list"></div>
       </div>
-    </div><!-- end main-content -->
-  </div><!-- end layout -->
-</div>
-
-<div class="toast" id="toast"></div>
-
-<div class="modal-overlay" id="modal-overlay">
-  <div class="modal">
-    <h3 id="modal-title">Confirm</h3>
-    <p id="modal-body"></p>
- 
+    </div><!--
