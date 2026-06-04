@@ -269,7 +269,7 @@ function parseCSV(text){
 async function fetchSheet(url){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),10000);
-  const proxyUrl='https://polite-starburst-0398c1.netlify.app/.netlify/functions/sheet?url='+encodeURIComponent(url);
+  const proxyUrl='https://familyhq-opal.vercel.app/api/sheet?url='+encodeURIComponent(url);
   try{
     const res=await fetch(proxyUrl,{signal:controller.signal});
     clearTimeout(timer);
@@ -675,7 +675,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 async function fetchWithProxy(url) {
-  const fnUrl = 'https://polite-starburst-0398c1.netlify.app/.netlify/functions/ical?url=' + encodeURIComponent(url);
+  const fnUrl = 'https://familyhq-opal.vercel.app/api/ical?url=' + encodeURIComponent(url);
   const res = await fetch(fnUrl, {signal: AbortSignal.timeout(10000)});
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const text = await res.text();
@@ -847,4 +847,4 @@ async function loadCalendars() {
       html += '<div class="cal-event-bar" style="background:' + e.calColor + '"></div>';
       html += '<div class="cal-event-body">';
       html += '<div class="cal-event-title">' + (e.title||'(no title)') + '</div>';
-      html += '<div class="cal-event-time">' + fmtEventTime(e.
+      html += '<div class="cal-event-time">' + fmtEventTime(e.start, e.end) + ' &nbsp;·&nbsp; <span style="color:'
