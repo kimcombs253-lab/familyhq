@@ -48,14 +48,14 @@
   .chore-check{width:44px;height:44px;border-radius:50%;border:2px solid #d0d0c8;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:18px;background:#f5f5f0;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
   .chore-check.checked{background:#534AB7;border-color:#534AB7;color:#fff}
   .chore-name{flex:1;font-size:13px;color:#1a1a1a}
-  .chore-meta{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+  .chore-meta{display:flex;flex-direction:row;align-items:center;gap:6px;flex-shrink:0}
   .chore-pts{font-size:11px;font-weight:600;color:#534AB7;background:#EEEDFE;padding:2px 6px;border-radius:6px;white-space:nowrap}
   .age-badge{font-size:10px;padding:2px 5px;border-radius:6px;white-space:nowrap}
   .age-all{background:#E6F1FB;color:#0C447C}
   .age-older{background:#E1F5EE;color:#085041}
   .age-toddler{background:#FAEEDA;color:#633806}
-  .assign-wrap{display:flex;flex-direction:column;gap:3px}
-  .assign-btn{font-size:11px;padding:3px 8px;border:1px solid #d0d0c8;border-radius:6px;background:#f5f5f0;cursor:pointer;color:#555;font-family:inherit;white-space:nowrap}
+  .assign-wrap{display:flex;flex-direction:row;gap:4px;flex-shrink:0}
+  .assign-btn{font-size:12px;padding:5px 10px;border:1px solid #d0d0c8;border-radius:6px;background:#f5f5f0;cursor:pointer;color:#555;font-family:inherit;white-space:nowrap;min-width:60px;text-align:center}
   .assign-btn:active{transform:scale(0.96)}
   .bonus-wrap{background:#EEEDFE;border:1px solid #AFA9EC;border-radius:12px;padding:12px}
   .bonus-wrap h3{font-size:14px;font-weight:600;color:#3C3489;margin-bottom:10px}
@@ -844,6 +844,4 @@ async function loadCalendars() {
       </div>
       <div id="tab-history" class="section">
         <div class="section-label">Point history</div>
-        <div class="hist-list" id="hist-list"></div>
-      </div>
-    </div><!--
+        <div class="hist-l
