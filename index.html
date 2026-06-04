@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, orientation=landscape">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Family HQ">
@@ -11,7 +11,10 @@
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f0;color:#1a1a1a;min-height:100vh}
-  .app{max-width:700px;margin:0 auto;padding:14px}
+  .layout{display:grid;grid-template-columns:260px 1fr;gap:16px;align-items:start}
+  .sidebar{position:sticky;top:14px}
+  @media(max-width:800px){.layout{grid-template-columns:1fr}}
+  .app{max-width:1100px;margin:0 auto;padding:14px}
   .header{display:flex;align-items:center;justify-content:space-between;padding:10px 0 14px}
   .header h1{font-size:22px;font-weight:600;color:#1a1a1a}
   .hdr-btns{display:flex;gap:6px;flex-wrap:wrap}
@@ -23,7 +26,8 @@
   .sync-dot.ok{background:#639922}
   .sync-dot.err{background:#E24B4A}
   .sync-dot.loading{background:#EF9F27}
-  .kids-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+  .kids-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:14px}
+  .main-content{min-width:0}
   .kid-card{background:#fff;border:1px solid #e8e8e0;border-radius:12px;padding:12px}
   .kid-name{font-size:15px;font-weight:600}
   .kid-age{font-size:11px;color:#aaa;margin-bottom:6px}
@@ -130,7 +134,8 @@
 </head>
 <body>
 <div class="app">
-  <div class="header">
+  <div class="layout">
+  <div class="sidebar">
     <div>
       <div class="date-bar" id="datebar"></div>
       <h1><i class="ti ti-home" style="font-size:19px;vertical-align:-2px;margin-right:6px"></i>Family HQ</h1>
@@ -150,6 +155,8 @@
 
   <div class="kids-grid" id="kids-grid"></div>
 
+  </div><!-- end sidebar -->
+  <div class="main-content">
   <div class="tabs">
     <button class="tab active" onclick="showTab('daily',event)"><i class="ti ti-sun"></i> Daily</button>
     <button class="tab" onclick="showTab('weekly',event)"><i class="ti ti-calendar-week"></i> Weekly</button>
@@ -202,6 +209,8 @@
       <button onclick="addHoney()"><i class="ti ti-plus"></i> Add</button>
     </div>
   </div>
+  </div><!-- end main-content -->
+  </div><!-- end layout -->
 </div>
 
 <div class="toast" id="toast"></div>
@@ -280,7 +289,16 @@ async function syncNow(){
     CHORES={daily:[],weekly:[],monthly:[],bonus:[]};
     choresData.forEach(r=>{
       const freq=(r.frequency||r.freq||'').toLowerCase();
-      const c={id:r.id||r.ID,name:r.name||r.Name,pts:parseInt(r.points||r.pts||0),who:(r.who||r.Who||'all').toLowerCase()};
+      // Build who list from per-kid columns if present
+      let who = (r.who||r.Who||'').toLowerCase();
+      const perKid = [];
+      KIDS.forEach(k=>{
+        const val=(r[k.id]||r[k.name]||'').toLowerCase();
+        if(val==='yes'||val==='y')perKid.push(k.id);
+      });
+      if(perKid.length>0) who=perKid.join(',');
+      else if(!who) who='all';
+      const c={id:r.id||r.ID,name:r.name||r.Name,pts:parseInt(r.points||r.pts||0),who:who};
       if(CHORES[freq])CHORES[freq].push(c);
     });
     REWARDS=rewardsData.map(r=>({
@@ -310,6 +328,11 @@ function eligibleKids(who){
   if(w==='all')return KIDS;
   if(w==='older')return KIDS.filter(k=>parseInt(k.age)>=6);
   if(w==='toddler')return KIDS.filter(k=>parseInt(k.age)<6);
+  // comma-separated kid IDs e.g. "tenley,henry"
+  if(w.includes(',')){ const ids=w.split(',').map(s=>s.trim()); return KIDS.filter(k=>ids.includes(k.id)); }
+  // single kid ID
+  const single=KIDS.filter(k=>k.id===w);
+  if(single.length)return single;
   return KIDS;
 }
 
@@ -318,6 +341,13 @@ function whoLabel(who){
   if(w==='all')return{label:'All kids',cls:'age-all'};
   if(w==='older')return{label:'Older kids',cls:'age-older'};
   if(w==='toddler')return{label:'Little ones',cls:'age-toddler'};
+  if(w.includes(',')){
+    const ids=w.split(',').map(s=>s.trim());
+    const names=KIDS.filter(k=>ids.includes(k.id)).map(k=>k.name);
+    return{label:names.join(' & '),cls:'age-older'};
+  }
+  const single=KIDS.find(k=>k.id===w);
+  if(single)return{label:single.name,cls:'age-older'};
   return{label:who,cls:'age-all'};
 }
 
@@ -738,36 +768,4 @@ async function loadCalendars() {
   }
 
   if (sortedDays.length === 0 && errors.length === 0) {
-    html += '<div class="cal-empty">No events in the next 5 days 🎉</div>';
-  }
-
-  // Add empty today if no events
-  if (!byDay[todayKey]) {
-    const dl = dayLabel(todayKey);
-    html += '<div class="cal-day-block"><div class="cal-day-label today">Today</div><div class="cal-empty">No events today</div></div>';
-  }
-
-  sortedDays.forEach(dayKey => {
-    const dl = dayLabel(dayKey);
-    const evts = byDay[dayKey].sort((a,b) => (a.start||'').localeCompare(b.start||''));
-    html += '<div class="cal-day-block">';
-    html += '<div class="cal-day-label' + (dl.isToday ? ' today' : '') + '">' + dl.label + '</div>';
-    evts.forEach(e => {
-      html += '<div class="cal-event">';
-      html += '<div class="cal-event-bar" style="background:' + e.calColor + '"></div>';
-      html += '<div class="cal-event-body">';
-      html += '<div class="cal-event-title">' + (e.title||'(no title)') + '</div>';
-      html += '<div class="cal-event-time">' + fmtEventTime(e.start, e.end) + ' &nbsp;·&nbsp; <span style="color:' + e.calColor + '">' + e.calName + '</span></div>';
-      html += '</div></div>';
-    });
-    html += '</div>';
-  });
-
-  el.innerHTML = html;
-}
-
-// Calendar loads via showTab above
-
-</script>
-</body>
-</html>
+  
