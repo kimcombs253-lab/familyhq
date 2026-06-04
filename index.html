@@ -405,7 +405,12 @@ function renderChores(freq){
     kids.forEach(k=>{
       const btn=document.createElement('button');
       btn.className='assign-btn';
-      if(d.who===k.id)btn.style.cssText='background:'+k.color+';color:#fff;border-color:'+k.color;
+      // Always tint the button with the kid's color, brighter when selected
+      if(d.who===k.id){
+        btn.style.cssText='background:'+k.color+';color:#fff;border-color:'+k.color;
+      } else {
+        btn.style.cssText='background:'+k.color+'22;color:'+k.color+';border-color:'+k.color+'66';
+      }
       btn.textContent=k.name;
       btn.addEventListener('click',()=>assignKid(c.id,k.id));
       assignEl.appendChild(btn);
@@ -842,10 +847,4 @@ async function loadCalendars() {
           <button onclick="addHoney()"><i class="ti ti-plus"></i> Add</button>
         </div>
       </div>
-      <div id="tab-history" class="section">
-        <div class="section-label">Point history</div>
-        <div class="hist-list" id="hist-list"></div>
-      </div>
-    </div><!-- end main-content -->
-  </div><!-- end layout -->
-</di
+      <div id="tab-histor
