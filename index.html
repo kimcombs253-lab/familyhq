@@ -268,9 +268,10 @@ function parseCSV(text){
 
 async function fetchSheet(url){
   const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),8000);
+  const timer=setTimeout(()=>controller.abort(),10000);
+  const proxyUrl='https://polite-starburst-0398c1.netlify.app/.netlify/functions/sheet?url='+encodeURIComponent(url);
   try{
-    const res=await fetch(url,{signal:controller.signal});
+    const res=await fetch(proxyUrl,{signal:controller.signal});
     clearTimeout(timer);
     if(!res.ok)throw new Error('HTTP '+res.status);
     return parseCSV(await res.text());
@@ -817,4 +818,40 @@ async function loadCalendars() {
 
   let html = '';
   if (errors.length) {
-    html += '<div class="cal-error"><i class="ti ti-alert-circle" style="vertical-a
+    html += '<div class="cal-error"><i class="ti ti-alert-circle" style="vertical-align:-2px;margin-right:4px"></i>Could not load: ' + errors.join(', ') + '</div>';
+  }
+
+  if (sortedDays.length === 0 && errors.length === 0) {
+    html += '<div class="cal-empty">No events in the next 5 days 🎉</div>';
+  }
+
+  // Add empty today if no events
+  if (!byDay[todayKey]) {
+    const dl = dayLabel(todayKey);
+    html += '<div class="cal-day-block"><div class="cal-day-label today">Today</div><div class="cal-empty">No events today</div></div>';
+  }
+
+  sortedDays.forEach(dayKey => {
+    const dl = dayLabel(dayKey);
+    const evts = byDay[dayKey].sort((a,b) => (a.start||'').localeCompare(b.start||''));
+    html += '<div class="cal-day-block">';
+    html += '<div class="cal-day-label' + (dl.isToday ? ' today' : '') + '">' + dl.label + '</div>';
+    evts.forEach(e => {
+      html += '<div class="cal-event">';
+      html += '<div class="cal-event-bar" style="background:' + e.calColor + '"></div>';
+      html += '<div class="cal-event-body">';
+      html += '<div class="cal-event-title">' + (e.title||'(no title)') + '</div>';
+      html += '<div class="cal-event-time">' + fmtEventTime(e.start, e.end) + ' &nbsp;·&nbsp; <span style="color:' + e.calColor + '">' + e.calName + '</span></div>';
+      html += '</div></div>';
+    });
+    html += '</div>';
+  });
+
+  el.innerHTML = html;
+}
+
+// Calendar loads via showTab above
+
+</script>
+</body>
+</html>
