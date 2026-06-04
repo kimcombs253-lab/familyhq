@@ -300,6 +300,9 @@ async function syncNow(){
     console.log('Chores count:', choresData.length);
     console.log('First chore row:', JSON.stringify(choresData[0]));
     CHORES={daily:[],weekly:[],monthly:[],bonus:[]};
+    console.log('KIDS ids:', KIDS.map(k=>k.id));
+    console.log('Sample chore keys:', Object.keys(choresData[0]||{}));
+    console.log('Sample chore values:', JSON.stringify(choresData[0]));
     choresData.forEach(r=>{
       const freq=(r.frequency||r.freq||'').toLowerCase();
       // Build who list purely from per-kid columns
@@ -843,17 +846,4 @@ async function loadCalendars() {
       html += '<div class="cal-event-bar" style="background:' + e.calColor + '"></div>';
       html += '<div class="cal-event-body">';
       html += '<div class="cal-event-title">' + (e.title||'(no title)') + '</div>';
-      html += '<div class="cal-event-time">' + fmtEventTime(e.start, e.end) + ' &nbsp;·&nbsp; <span style="color:' + e.calColor + '">' + e.calName + '</span></div>';
-      html += '</div></div>';
-    });
-    html += '</div>';
-  });
-
-  el.innerHTML = html;
-}
-
-// Calendar loads via showTab above
-
-</script>
-</body>
-</html>
+      html += '<div class="cal-event-time">' + fmtEventTime(e.start, e.end) + ' &nbsp;·&nbsp; <span style="color:' + e.calColor + 
