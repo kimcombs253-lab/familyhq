@@ -11,8 +11,9 @@
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f0;color:#1a1a1a;min-height:100vh}
-  .layout{display:grid;grid-template-columns:260px 1fr;gap:16px;align-items:start}
+  .layout{display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:start;margin-top:10px}
   .sidebar{position:sticky;top:14px}
+  .main-content{min-width:0}
   @media(max-width:800px){.layout{grid-template-columns:1fr}}
   .app{max-width:1100px;margin:0 auto;padding:14px}
   .header{display:flex;align-items:center;justify-content:space-between;padding:10px 0 14px}
@@ -134,8 +135,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="layout">
-  <div class="sidebar">
+  <div class="header">
     <div>
       <div class="date-bar" id="datebar"></div>
       <h1><i class="ti ti-home" style="font-size:19px;vertical-align:-2px;margin-right:6px"></i>Family HQ</h1>
@@ -153,63 +153,65 @@
     <span id="sync-msg">Connecting to Google Sheets...</span>
   </div>
 
-  <div class="kids-grid" id="kids-grid"></div>
-
-  </div><!-- end sidebar -->
-  <div class="main-content">
-  <div class="tabs">
-    <button class="tab active" onclick="showTab('daily',event)"><i class="ti ti-sun"></i> Daily</button>
-    <button class="tab" onclick="showTab('weekly',event)"><i class="ti ti-calendar-week"></i> Weekly</button>
-    <button class="tab" onclick="showTab('monthly',event)"><i class="ti ti-calendar-month"></i> Monthly</button>
-    <button class="tab" onclick="showTab('bonus',event)"><i class="ti ti-trophy"></i> Bonus</button>
-    <button class="tab" onclick="showTab('rewards',event)"><i class="ti ti-gift"></i> Rewards</button>
-    <button class="tab" onclick="showTab('calendar',event)"><i class="ti ti-calendar"></i> Calendar</button>
-    <button class="tab" onclick="showTab('honey',event)"><i class="ti ti-tool"></i> Home Fix</button>
-    <button class="tab" onclick="showTab('history',event)"><i class="ti ti-history"></i> History</button>
-  </div>
-
-  <div id="tab-daily" class="section active"><div class="section-label">Daily chores</div><div class="chore-list" id="list-daily"></div></div>
-  <div id="tab-weekly" class="section"><div class="section-label">Weekly chores</div><div class="chore-list" id="list-weekly"></div></div>
-  <div id="tab-monthly" class="section"><div class="section-label">Monthly chores</div><div class="chore-list" id="list-monthly"></div></div>
-  <div id="tab-bonus" class="section">
-    <div class="bonus-wrap">
-      <h3><i class="ti ti-trophy" style="font-size:15px;vertical-align:-2px;margin-right:5px"></i>Bonus chores — pick one to earn extra points!</h3>
-      <div class="chore-list" id="list-bonus"></div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="kids-grid" id="kids-grid"></div>
     </div>
-  </div>
-  <div id="tab-rewards" class="section">
-    <div class="screen-card">
-      <h3><i class="ti ti-device-tv" style="font-size:15px;vertical-align:-2px;margin-right:5px"></i>Screen time — 1 pt = 1 minute</h3>
-      <div id="screen-rows"></div>
-    </div>
-    <div class="section-label">Outings & experiences</div>
-    <div class="reward-grid" id="reward-grid"></div>
-  </div>
-  <div id="tab-history" class="section">
-    <div class="section-label">Point history</div>
-    <div class="hist-list" id="hist-list"></div>
-  </div>
-  <div id="tab-calendar" class="section">
-    <div class="cal-header">
-      <h3><i class="ti ti-calendar" style="font-size:16px;vertical-align:-2px;margin-right:5px"></i>Upcoming events</h3>
-      <div class="cal-legend">
-        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#534AB7"></div>Kim &amp; Kids</div>
-        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#E8A020"></div>PTA</div>
-        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#1A8CD8"></div>Weather</div>
+
+    <div class="main-content">
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('daily',event)"><i class="ti ti-sun"></i> Daily</button>
+        <button class="tab" onclick="showTab('weekly',event)"><i class="ti ti-calendar-week"></i> Weekly</button>
+        <button class="tab" onclick="showTab('monthly',event)"><i class="ti ti-calendar-month"></i> Monthly</button>
+        <button class="tab" onclick="showTab('bonus',event)"><i class="ti ti-trophy"></i> Bonus</button>
+        <button class="tab" onclick="showTab('rewards',event)"><i class="ti ti-gift"></i> Rewards</button>
+        <button class="tab" onclick="showTab('calendar',event)"><i class="ti ti-calendar"></i> Calendar</button>
+        <button class="tab" onclick="showTab('honey',event)"><i class="ti ti-tool"></i> Home Fix</button>
+        <button class="tab" onclick="showTab('history',event)"><i class="ti ti-history"></i> History</button>
       </div>
-    </div>
-    <div id="cal-content"><div class="cal-loading"><i class="ti ti-calendar" style="font-size:24px;display:block;margin-bottom:8px"></i>Loading calendar...</div></div>
-  </div>
-    <div id="tab-honey" class="section">
-    <div class="section-label">Home Fix list</div>
-    <div class="honey-list" id="list-honey"></div>
-    <div class="add-form">
-      <input id="honey-input" type="text" placeholder="Add a new item..." />
-      <select id="honey-priority"><option value="high">High</option><option value="med" selected>Medium</option><option value="low">Low</option></select>
-      <button onclick="addHoney()"><i class="ti ti-plus"></i> Add</button>
-    </div>
-  </div>
-  </div><!-- end main-content -->
+
+      <div id="tab-daily" class="section active"><div class="section-label">Daily chores</div><div class="chore-list" id="list-daily"></div></div>
+      <div id="tab-weekly" class="section"><div class="section-label">Weekly chores</div><div class="chore-list" id="list-weekly"></div></div>
+      <div id="tab-monthly" class="section"><div class="section-label">Monthly chores</div><div class="chore-list" id="list-monthly"></div></div>
+      <div id="tab-bonus" class="section">
+        <div class="bonus-wrap">
+          <h3><i class="ti ti-trophy" style="font-size:15px;vertical-align:-2px;margin-right:5px"></i>Bonus chores — pick one to earn extra points!</h3>
+          <div class="chore-list" id="list-bonus"></div>
+        </div>
+      </div>
+      <div id="tab-rewards" class="section">
+        <div class="screen-card">
+          <h3><i class="ti ti-device-tv" style="font-size:15px;vertical-align:-2px;margin-right:5px"></i>Screen time — 1 pt = 1 minute</h3>
+          <div id="screen-rows"></div>
+        </div>
+        <div class="section-label">Outings & experiences</div>
+        <div class="reward-grid" id="reward-grid"></div>
+      </div>
+      <div id="tab-calendar" class="section">
+        <div class="cal-header">
+          <h3><i class="ti ti-calendar" style="font-size:16px;vertical-align:-2px;margin-right:5px"></i>Upcoming events</h3>
+          <div class="cal-legend">
+            <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#534AB7"></div>Kim &amp; Kids</div>
+            <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#E8A020"></div>PTA</div>
+            <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#1A8CD8"></div>Weather</div>
+          </div>
+        </div>
+        <div id="cal-content"><div class="cal-loading"><i class="ti ti-calendar" style="font-size:24px;display:block;margin-bottom:8px"></i>Loading calendar...</div></div>
+      </div>
+      <div id="tab-honey" class="section">
+        <div class="section-label">Home Fix list</div>
+        <div class="honey-list" id="list-honey"></div>
+        <div class="add-form">
+          <input id="honey-input" type="text" placeholder="Add a new item..." />
+          <select id="honey-priority"><option value="high">High</option><option value="med" selected>Medium</option><option value="low">Low</option></select>
+          <button onclick="addHoney()"><i class="ti ti-plus"></i> Add</button>
+        </div>
+      </div>
+      <div id="tab-history" class="section">
+        <div class="section-label">Point history</div>
+        <div class="hist-list" id="hist-list"></div>
+      </div>
+    </div><!-- end main-content -->
   </div><!-- end layout -->
 </div>
 
@@ -815,17 +817,4 @@ async function loadCalendars() {
       html += '<div class="cal-event-bar" style="background:' + e.calColor + '"></div>';
       html += '<div class="cal-event-body">';
       html += '<div class="cal-event-title">' + (e.title||'(no title)') + '</div>';
-      html += '<div class="cal-event-time">' + fmtEventTime(e.start, e.end) + ' &nbsp;·&nbsp; <span style="color:' + e.calColor + '">' + e.calName + '</span></div>';
-      html += '</div></div>';
-    });
-    html += '</div>';
-  });
-
-  el.innerHTML = html;
-}
-
-// Calendar loads via showTab above
-
-</script>
-</body>
-</html>
+      html += '<div class="cal-event-time">' + fmtEventTime(
