@@ -399,7 +399,7 @@ function renderChores(freq){
     nameEl.className='chore-name';nameEl.textContent=c.name;
     const metaEl=document.createElement('div');
     metaEl.className='chore-meta';
-    metaEl.innerHTML='<span class="chore-pts">+'+c.pts+'</span><span class="age-badge '+wl.cls+'">'+wl.label+'</span>';
+    metaEl.innerHTML='<span class="chore-pts">+'+c.pts+'</span>';
     const assignEl=document.createElement('div');
     assignEl.className='assign-wrap';
     kids.forEach(k=>{
@@ -436,7 +436,7 @@ function renderBonus(){
     if(claimed){const s=document.createElement('span');s.style.cssText='font-size:11px;color:#aaa';s.textContent=' ('+kidName(claimed)+')';nameEl.appendChild(s);}
     const metaEl=document.createElement('div');
     metaEl.className='chore-meta';
-    metaEl.innerHTML='<span class="chore-pts">+'+c.pts+'</span><span class="age-badge '+wl.cls+'">'+wl.label+'</span>';
+    metaEl.innerHTML='<span class="chore-pts">+'+c.pts+'</span>';
     row.appendChild(check);row.appendChild(nameEl);row.appendChild(metaEl);
     if(!claimed){
       const wrap=document.createElement('div');
@@ -844,4 +844,8 @@ async function loadCalendars() {
       </div>
       <div id="tab-history" class="section">
         <div class="section-label">Point history</div>
-        <div class="hist-l
+        <div class="hist-list" id="hist-list"></div>
+      </div>
+    </div><!-- end main-content -->
+  </div><!-- end layout -->
+</di
