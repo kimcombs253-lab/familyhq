@@ -546,17 +546,44 @@ function openModal(type){
     week:'Daily and weekly chores reset. Bonus pool refreshes. Points and history kept.',
     reset:'Permanently erases all points, check-offs, and history. Cannot be undone.'
   };
-  document.getElementById('modal-title').textContent=titles[type];
-  document.getElementById('modal-body').textContent=bodies[type];
+  pendingAction=type;
+  const overlay=document.getElementById('modal-overlay');
+  const title=document.getElementById('modal-title');
+  const body=document.getElementById('modal-body');
   const btn=document.getElementById('modal-confirm');
+  if(!overlay||!title||!body||!btn){
+    // Fallback: use native confirm if modal elements not found
+    if(confirm(titles[type]+'\n\n'+bodies[type])){
+      executeModalAction(type);
+    }
+    return;
+  }
+  title.textContent=titles[type];
+  body.textContent=bodies[type];
   btn.className=type==='reset'?'btn-danger':'btn-confirm';
   btn.textContent=type==='reset'?'Reset everything':'Confirm';
-  pendingAction=type;
-  document.getElementById('modal-overlay').classList.add('show');
+  overlay.classList.add('show');
 }
 function closeModal(){
-  document.getElementById('modal-overlay').classList.remove('show');
+  const overlay=document.getElementById('modal-overlay');
+  if(overlay)overlay.classList.remove('show');
   pendingAction=null;
+}
+function executeModalAction(type){
+  if(type==='day'){
+    Object.keys(S.done).forEach(k=>{if(k.startsWith('d'))delete S.done[k]});
+    KIDS.forEach(k=>S.todayPts[k.id]=0);
+    showToast('New day started!');
+  }else if(type==='week'){
+    Object.keys(S.done).forEach(k=>{if(k.startsWith('d')||k.startsWith('w'))delete S.done[k]});
+    Object.keys(S.bonusClaimed).forEach(k=>delete S.bonusClaimed[k]);
+    KIDS.forEach(k=>S.todayPts[k.id]=0);
+    showToast('New week started! Bonus pool refreshed.');
+  }else if(type==='reset'){
+    Object.assign(S,DEFAULT_STATE());
+    showToast('Everything reset.');
+  }
+  closeModal();saveState();renderAll();
 }
 
 
@@ -570,20 +597,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('datebar').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   const modalConfirmBtn=document.getElementById('modal-confirm');
   if(modalConfirmBtn)modalConfirmBtn.onclick=function(){
-    if(pendingAction==='day'){
-      Object.keys(S.done).forEach(k=>{if(k.startsWith('d'))delete S.done[k]});
-      KIDS.forEach(k=>S.todayPts[k.id]=0);
-      showToast('New day started!');
-    }else if(pendingAction==='week'){
-      Object.keys(S.done).forEach(k=>{if(k.startsWith('d')||k.startsWith('w'))delete S.done[k]});
-      Object.keys(S.bonusClaimed).forEach(k=>delete S.bonusClaimed[k]);
-      KIDS.forEach(k=>S.todayPts[k.id]=0);
-      showToast('New week started! Bonus pool refreshed.');
-    }else if(pendingAction==='reset'){
-      Object.assign(S,DEFAULT_STATE());
-      showToast('Everything reset.');
-    }
-    closeModal();saveState();renderAll();
+    executeModalAction(pendingAction);
   };
   syncNow();
   setInterval(syncNow,60000);
@@ -843,9 +857,4 @@ async function loadCalendars() {
         <div class="section-label">Home Fix list</div>
         <div class="honey-list" id="list-honey"></div>
         <div class="add-form">
-          <input id="honey-input" type="text" placeholder="Add a new item..." />
-          <select id="honey-priority"><option value="high">High</option><option value="med" selected>Medium</option><option value="low">Low</option></select>
-          <button onclick="addHoney()"><i class="ti ti-plus"></i> Add</button>
-        </div>
-
-       
+        
