@@ -42,6 +42,11 @@
   .section{display:none}.section.active{display:block}
   .section-label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em;margin:14px 0 7px}
   .chore-list{display:flex;flex-direction:column;gap:7px}
+  .chore-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .chore-col{display:flex;flex-direction:column;gap:6px}
+  .chore-task-btn{display:block;width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid;font-size:13px;font-family:inherit;cursor:pointer;text-align:left;font-weight:500;transition:opacity .15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  .chore-task-btn:active{transform:scale(0.97)}
+  .chore-task-btn.checked{opacity:0.55}
   .chore-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fff;border:1px solid #e8e8e0;border-radius:8px}
   .chore-row.done{opacity:0.45}
   .chore-row.done .chore-name{text-decoration:line-through;color:#aaa}
@@ -385,40 +390,70 @@ function renderChores(freq){
   const list=CHORES[freq]||[];
   if(!list.length){el.innerHTML='<div class="empty-state">No chores loaded — tap Sync or check your Sheet</div>';return;}
   el.innerHTML='';
-  list.forEach(c=>{
-    const d=S.done[c.id]||{who:null,checked:false};
-    const kids=eligibleKids(c.who);
-    const wl=whoLabel(c.who);
-    const row=document.createElement('div');
-    row.className='chore-row'+(d.checked?' done':'');
-    const check=document.createElement('div');
-    check.className='chore-check'+(d.checked?' checked':'');
-    check.innerHTML=d.checked?'<i class="ti ti-check"></i>':'';
-    check.addEventListener('click',()=>toggleChore(c.id,c.pts,c.name));
-    const nameEl=document.createElement('span');
-    nameEl.className='chore-name';nameEl.textContent=c.name;
-    const metaEl=document.createElement('div');
-    metaEl.className='chore-meta';
-    metaEl.innerHTML='<span class="chore-pts">+'+c.pts+'</span>';
-    const assignEl=document.createElement('div');
-    assignEl.className='assign-wrap';
-    kids.forEach(k=>{
-      const btn=document.createElement('button');
-      btn.className='assign-btn';
-      // Always tint the button with the kid's color, brighter when selected
-      if(d.who===k.id){
-        btn.style.cssText='background:'+k.color+';color:#fff;border-color:'+k.color;
-      } else {
-        btn.style.cssText='background:'+k.color+'22;color:'+k.color+';border-color:'+k.color+'66';
-      }
-      btn.textContent=k.name;
-      btn.addEventListener('click',()=>assignKid(c.id,k.id));
-      assignEl.appendChild(btn);
+
+  // Build 3-column grid — one column per kid
+  const grid=document.createElement('div');
+  grid.className='chore-grid';
+  el.appendChild(grid);
+
+  KIDS.forEach(k=>{
+    const col=document.createElement('div');
+    col.className='chore-col';
+
+    // Kid header
+    const hdr=document.createElement('div');
+    hdr.className='chore-col-header';
+    hdr.style.cssText='background:'+k.color+';color:#fff;border-radius:8px;padding:10px;text-align:center;margin-bottom:8px';
+    hdr.innerHTML='<div style="font-size:15px;font-weight:600">'+k.name+'</div><div style="font-size:13px;opacity:0.9" id="col-pts-'+k.id+'">'+Math.max(0,S.pts[k.id]||0)+' pts</div>';
+    col.appendChild(hdr);
+
+    // Kid's chores
+    const kidChores=list.filter(c=>{
+      const kids=eligibleKids(c.who);
+      return kids.some(ek=>ek.id===k.id);
     });
-    row.appendChild(check);row.appendChild(nameEl);row.appendChild(metaEl);row.appendChild(assignEl);
-    el.appendChild(row);
+
+    if(!kidChores.length){
+      const empty=document.createElement('div');
+      empty.style.cssText='font-size:12px;color:#aaa;text-align:center;padding:12px 0';
+      empty.textContent='No chores';
+      col.appendChild(empty);
+    } else {
+      kidChores.forEach(c=>{
+        const d=S.done[c.id+'-'+k.id]||{checked:false};
+        const btn=document.createElement('button');
+        btn.className='chore-task-btn'+(d.checked?' checked':'');
+        btn.style.cssText=d.checked
+          ?'background:'+k.color+';color:#fff;border-color:'+k.color+';opacity:0.6'
+          :'background:'+k.color+'15;color:'+k.color+';border-color:'+k.color+'44';
+        btn.innerHTML=(d.checked?'<i class="ti ti-check" style="margin-right:4px"></i>':'')+c.name+'<span style="float:right;font-size:11px;opacity:0.8">+'+c.pts+'</span>';
+        btn.addEventListener('click',()=>toggleChoreForKid(c,k));
+        col.appendChild(btn);
+      });
+    }
+    grid.appendChild(col);
   });
 }
+
+function toggleChoreForKid(c,k){
+  const key=c.id+'-'+k.id;
+  if(!S.done[key])S.done[key]={checked:false};
+  const d=S.done[key];
+  if(!d.checked){
+    d.checked=true;
+    S.pts[k.id]=(S.pts[k.id]||0)+c.pts;
+    S.todayPts[k.id]=(S.todayPts[k.id]||0)+c.pts;
+    addHistory(k.id,c.name,c.pts,'earn');
+    showToast('+'+c.pts+' pts for '+k.name+'!');
+  } else {
+    d.checked=false;
+    S.pts[k.id]=Math.max(0,(S.pts[k.id]||0)-c.pts);
+    S.todayPts[k.id]=Math.max(0,(S.todayPts[k.id]||0)-c.pts);
+    addHistory(k.id,'Undid: '+c.name,-c.pts,'earn');
+  }
+  saveState();renderAll();
+}
+
 function renderBonus(){
   const el=document.getElementById('list-bonus');
   if(!el)return;
@@ -529,6 +564,9 @@ function renderPoints(){
     const te=document.getElementById('today-'+k.id);
     if(pe)pe.innerHTML=Math.max(0,S.pts[k.id]||0)+' <span>pts</span>';
     if(te)te.textContent=Math.max(0,S.todayPts[k.id]||0);
+    // Update column headers too
+    const cp=document.getElementById('col-pts-'+k.id);
+    if(cp)cp.textContent=Math.max(0,S.pts[k.id]||0)+' pts';
   });
 }
 
@@ -571,11 +609,11 @@ function closeModal(){
 }
 function executeModalAction(type){
   if(type==='day'){
-    Object.keys(S.done).forEach(k=>{if(k.startsWith('d'))delete S.done[k]});
+    Object.keys(S.done).forEach(k=>{if(k.match(/^d\d/))delete S.done[k]});
     KIDS.forEach(k=>S.todayPts[k.id]=0);
     showToast('New day started!');
   }else if(type==='week'){
-    Object.keys(S.done).forEach(k=>{if(k.startsWith('d')||k.startsWith('w'))delete S.done[k]});
+    Object.keys(S.done).forEach(k=>{if(k.match(/^d\d|^w\d/))delete S.done[k]});
     Object.keys(S.bonusClaimed).forEach(k=>delete S.bonusClaimed[k]);
     KIDS.forEach(k=>S.todayPts[k.id]=0);
     showToast('New week started! Bonus pool refreshed.');
@@ -831,30 +869,4 @@ async function loadCalendars() {
       <div id="tab-monthly" class="section"><div class="section-label">Monthly chores</div><div class="chore-list" id="list-monthly"></div></div>
       <div id="tab-bonus" class="section">
         <div class="bonus-wrap">
-          <h3><i class="ti ti-trophy" style="font-size:15px;vertical-align:-2px;margin-right:5px"></i>Bonus chores — pick one to earn extra points!</h3>
-          <div class="chore-list" id="list-bonus"></div>
-        </div>
-      </div>
-      <div id="tab-rewards" class="section">
-        <div class="screen-card">
-          <h3><i class="ti ti-device-tv" style="font-size:15px;vertical-align:-2px;margin-right:5px"></i>Screen time — 1 pt = 1 minute</h3>
-          <div id="screen-rows"></div>
-        </div>
-        <div class="section-label">Outings & experiences</div>
-        <div class="reward-grid" id="reward-grid"></div>
-      </div>
-      <div id="tab-calendar" class="section">
-        <div class="cal-header">
-          <h3><i class="ti ti-calendar" style="font-size:16px;vertical-align:-2px;margin-right:5px"></i>Upcoming events</h3>
-          <div class="cal-legend">
-            <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#534AB7"></div>Kim &amp; Kids</div>
-            <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#1A8CD8"></div>Weather</div>
-          </div>
-        </div>
-        <div id="cal-content"><div class="cal-loading"><i class="ti ti-calendar" style="font-size:24px;display:block;margin-bottom:8px"></i>Loading calendar...</div></div>
-      </div>
-      <div id="tab-honey" class="section">
-        <div class="section-label">Home Fix list</div>
-        <div class="honey-list" id="list-honey"></div>
-        <div class="add-form">
-        
+          <h3><i class="ti ti-trophy" st
