@@ -211,6 +211,7 @@
           <select id="honey-priority"><option value="high">High</option><option value="med" selected>Medium</option><option value="low">Low</option></select>
           <button data-action="add-honey"><i class="ti ti-plus"></i> Add</button>
         </div>
+        <div id="honey-fixed-log"></div>
       </div>
       <div id="tab-history" class="section">
         <div class="section-label">Point history</div>
@@ -654,26 +655,66 @@ function renderHoney(){
   const el=document.getElementById('list-honey');
   if(!el)return;
   const combined=[...HONEY_SHEET,...(S.honeyExtra||[])];
-  if(!combined.length){el.innerHTML='<div class="empty-state">No items yet — add one below</div>';return;}
+
+  const active=combined.filter(h=>!S.honeyDone[h.id]);
+  const fixed=combined.filter(h=>S.honeyDone[h.id]);
+
   el.innerHTML='';
-  combined.forEach(h=>{
-    const done=S.honeyDone[h.id];
-    const row=document.createElement('div');
-    row.className='honey-row'+(done?' done-h':'');
-    const pdot=document.createElement('div');pdot.className='pdot p-'+h.priority;
-    const htxt=document.createElement('span');htxt.className='honey-text';htxt.textContent=h.text;
-    const hpri=document.createElement('span');hpri.style.cssText='font-size:11px;color:#aaa;margin-right:4px';hpri.textContent=h.priority;
-    const htoggle=document.createElement('div');htoggle.className='done-toggle'+(done?' fixed':'');
-    if(done)htoggle.innerHTML='<i class="ti ti-check"></i>';
-    htoggle.addEventListener('click',()=>toggleHoney(h.id));
-    row.appendChild(pdot);row.appendChild(htxt);row.appendChild(hpri);row.appendChild(htoggle);
-    el.appendChild(row);
-  });
+
+  if(!active.length){
+    const empty=document.createElement('div');
+    empty.className='empty-state';
+    empty.textContent='No open items — great work!';
+    el.appendChild(empty);
+  } else {
+    active.forEach(h=>{
+      const row=document.createElement('div');
+      row.className='honey-row';
+      const pdot=document.createElement('div');pdot.className='pdot p-'+h.priority;
+      const htxt=document.createElement('span');htxt.className='honey-text';htxt.textContent=h.text;
+      const hpri=document.createElement('span');hpri.style.cssText='font-size:11px;color:#aaa;margin-right:4px';hpri.textContent=h.priority;
+      const htoggle=document.createElement('div');htoggle.className='done-toggle';
+      htoggle.addEventListener('click',()=>toggleHoney(h.id));
+      row.appendChild(pdot);row.appendChild(htxt);row.appendChild(hpri);row.appendChild(htoggle);
+      el.appendChild(row);
+    });
+  }
+
+  // Fixed log
+  const logEl=document.getElementById('honey-fixed-log');
+  if(!logEl)return;
+  logEl.innerHTML='';
+  if(fixed.length){
+    const hdr=document.createElement('div');
+    hdr.className='section-label';
+    hdr.style.marginTop='18px';
+    hdr.textContent='✅ Fixed & done ('+fixed.length+')';
+    logEl.appendChild(hdr);
+    fixed.forEach(h=>{
+      const row=document.createElement('div');
+      row.className='honey-row';
+      row.style.opacity='0.5';
+      const pdot=document.createElement('div');pdot.className='pdot p-'+h.priority;
+      const htxt=document.createElement('span');htxt.className='honey-text';htxt.style.textDecoration='line-through';htxt.textContent=h.text;
+      const hdate=document.createElement('span');hdate.style.cssText='font-size:11px;color:#aaa;margin-right:4px';
+      hdate.textContent=S.honeyDoneDate&&S.honeyDoneDate[h.id]?S.honeyDoneDate[h.id]:'';
+      const htoggle=document.createElement('div');htoggle.className='done-toggle fixed';
+      htoggle.innerHTML='<i class="ti ti-check"></i>';
+      htoggle.title='Tap to reopen';
+      htoggle.addEventListener('click',()=>toggleHoney(h.id));
+      row.appendChild(pdot);row.appendChild(htxt);row.appendChild(hdate);row.appendChild(htoggle);
+      logEl.appendChild(row);
+    });
+  }
 }
 
 function toggleHoney(id){
   S.honeyDone[id]=!S.honeyDone[id];
-  if(S.honeyDone[id])showToast('Nice fix!');
+  if(S.honeyDone[id]){
+    if(!S.honeyDoneDate)S.honeyDoneDate={};
+    S.honeyDoneDate[id]=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    showToast('Nice fix! Moved to the log.');
+  }
   saveState();renderHoney();
 }
 
