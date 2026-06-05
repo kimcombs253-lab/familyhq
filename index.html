@@ -867,4 +867,128 @@ function parseICALDate(str) {
   const clean = str.replace(/[^0-9T]/g,'');
   const y=clean.substr(0,4),mo=clean.substr(4,2),d=clean.substr(6,2);
   const h=clean.substr(9,2)||'00',mi=clean.substr(11,2)||'00';
-  return new Date(parseInt(y),pars
+  return new Date(parseInt(y),parseInt(mo)-1,parseInt(d),parseInt(h),parseInt(mi));
+}
+
+function fmtEventTime(start, end) {
+  if (!start) return '';
+  const s = parseICALDate(start);
+  if (!s) return '';
+  // All-day: no T component or pure date
+  const isAllDay = str => str.length === 8 || !str.includes('T');
+  if (isAllDay(start)) return 'All day';
+  const timeOpts = {hour:'numeric', minute:'2-digit', hour12:true, timeZone:'America/Los_Angeles'};
+  if (end) {
+    const e = parseICALDate(end);
+    if (e) return s.toLocaleTimeString([],timeOpts) + ' – ' + e.toLocaleTimeString([],timeOpts);
+  }
+  return s.toLocaleTimeString([],timeOpts);
+}
+
+function getDayKey(str) {
+  if (!str) return '';
+  // For UTC times, convert to Pacific before extracting the day key
+  if (str.endsWith('Z') || str.includes('T')) {
+    const d = parseICALDate(str);
+    if (d) {
+      const pacific = new Date(d.toLocaleString('en-US', {timeZone:'America/Los_Angeles'}));
+      const y = pacific.getFullYear();
+      const mo = String(pacific.getMonth()+1).padStart(2,'0');
+      const day = String(pacific.getDate()).padStart(2,'0');
+      return ''+y+mo+day;
+    }
+  }
+  const clean = str.replace(/[^0-9T]/g,'');
+  return clean.substr(0,8);
+}
+
+function dayLabel(dateStr) {
+  const y = parseInt(dateStr.substr(0,4));
+  const mo = parseInt(dateStr.substr(4,2))-1;
+  const d = parseInt(dateStr.substr(6,2));
+  const date = new Date(y, mo, d);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate()+1);
+  if (date.getTime() === today.getTime()) return { label: 'Today', isToday: true };
+  if (date.getTime() === tomorrow.getTime()) return { label: 'Tomorrow', isToday: false };
+  return { label: date.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'}), isToday: false };
+}
+
+async function loadCalendars() {
+  const el = document.getElementById('cal-content');
+  if (!el) return;
+  el.innerHTML = '<div class="cal-loading"><i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>Loading events...</div>';
+  
+  const today = new Date(); today.setHours(0,0,0,0);
+  const cutoff = new Date(today); cutoff.setDate(today.getDate() + 5);
+  const todayKey = today.toISOString().replace(/-/g,'').substr(0,8);
+  const cutoffKey = cutoff.toISOString().replace(/-/g,'').substr(0,8);
+
+  let allEvents = [];
+  let errors = [];
+
+  for (const cal of CALENDARS) {
+    try {
+      const text = await fetchWithProxy(cal.url);
+      const events = parseICAL(text);
+      events.forEach(e => {
+        const key = getDayKey(e.start);
+        if (key >= todayKey && key <= cutoffKey) {
+          allEvents.push({ ...e, calColor: cal.color, calName: cal.name });
+        }
+      });
+    } catch(err) {
+      errors.push(cal.name + ': ' + err.message);
+    }
+  }
+
+  // Group by day
+  const byDay = {};
+  allEvents.forEach(e => {
+    const key = getDayKey(e.start);
+    if (!byDay[key]) byDay[key] = [];
+    byDay[key].push(e);
+  });
+
+  // Sort days
+  const sortedDays = Object.keys(byDay).sort();
+
+  let html = '';
+  if (errors.length) {
+    html += '<div class="cal-error"><i class="ti ti-alert-circle" style="vertical-align:-2px;margin-right:4px"></i>Could not load: ' + errors.join(', ') + '</div>';
+  }
+
+  if (sortedDays.length === 0 && errors.length === 0) {
+    html += '<div class="cal-empty">No events in the next 5 days 🎉</div>';
+  }
+
+  // Add empty today if no events
+  if (!byDay[todayKey]) {
+    const dl = dayLabel(todayKey);
+    html += '<div class="cal-day-block"><div class="cal-day-label today">Today</div><div class="cal-empty">No events today</div></div>';
+  }
+
+  sortedDays.forEach(dayKey => {
+    const dl = dayLabel(dayKey);
+    const evts = byDay[dayKey].sort((a,b) => (a.start||'').localeCompare(b.start||''));
+    html += '<div class="cal-day-block">';
+    html += '<div class="cal-day-label' + (dl.isToday ? ' today' : '') + '">' + dl.label + '</div>';
+    evts.forEach(e => {
+      html += '<div class="cal-event">';
+      html += '<div class="cal-event-bar" style="background:' + e.calColor + '"></div>';
+      html += '<div class="cal-event-body">';
+      html += '<div class="cal-event-title">' + (e.title||'(no title)') + '</div>';
+      html += '<div class="cal-event-time">' + fmtEventTime(e.start, e.end) + ' &nbsp;·&nbsp; <span style="color:' + e.calColor + '">' + e.calName + '</span></div>';
+      html += '</div></div>';
+    });
+    html += '</div>';
+  });
+
+  el.innerHTML = html;
+}
+
+// Calendar loads via showTab above
+
+</script>
+</body>
+</html>
