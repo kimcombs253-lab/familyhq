@@ -147,10 +147,10 @@
       <h1><i class="ti ti-home" style="font-size:19px;vertical-align:-2px;margin-right:6px"></i>Family HQ</h1>
     </div>
     <div class="hdr-btns">
-      <button class="sm-btn" onclick="syncNow()"><i class="ti ti-refresh"></i> Sync</button>
-      <button class="sm-btn" onclick="openModal('day')"><i class="ti ti-sun"></i> New day</button>
-      <button class="sm-btn" onclick="openModal('week')"><i class="ti ti-calendar-week"></i> New week</button>
-      <button class="sm-btn danger" onclick="openModal('reset')"><i class="ti ti-trash"></i> Reset all</button>
+      <button class="sm-btn" data-action="sync"><i class="ti ti-refresh"></i> Sync</button>
+      <button class="sm-btn" data-action="modal-day"><i class="ti ti-sun"></i> New day</button>
+      <button class="sm-btn" data-action="modal-week"><i class="ti ti-calendar-week"></i> New week</button>
+      <button class="sm-btn danger" data-action="modal-reset"><i class="ti ti-trash"></i> Reset all</button>
     </div>
   </div>
 
@@ -166,14 +166,14 @@
 
     <div class="main-content">
       <div class="tabs">
-        <button class="tab active" onclick="showTab('daily',event)"><i class="ti ti-sun"></i> Daily</button>
-        <button class="tab" onclick="showTab('weekly',event)"><i class="ti ti-calendar-week"></i> Weekly</button>
-        <button class="tab" onclick="showTab('monthly',event)"><i class="ti ti-calendar-month"></i> Monthly</button>
-        <button class="tab" onclick="showTab('bonus',event)"><i class="ti ti-trophy"></i> Bonus</button>
-        <button class="tab" onclick="showTab('rewards',event)"><i class="ti ti-gift"></i> Rewards</button>
-        <button class="tab" onclick="showTab('calendar',event)"><i class="ti ti-calendar"></i> Calendar</button>
-        <button class="tab" onclick="showTab('honey',event)"><i class="ti ti-tool"></i> Home Fix</button>
-        <button class="tab" onclick="showTab('history',event)"><i class="ti ti-history"></i> History</button>
+        <button class="tab active" data-tab="daily"><i class="ti ti-sun"></i> Daily</button>
+        <button class="tab" data-tab="weekly"><i class="ti ti-calendar-week"></i> Weekly</button>
+        <button class="tab" data-tab="monthly"><i class="ti ti-calendar-month"></i> Monthly</button>
+        <button class="tab" data-tab="bonus"><i class="ti ti-trophy"></i> Bonus</button>
+        <button class="tab" data-tab="rewards"><i class="ti ti-gift"></i> Rewards</button>
+        <button class="tab" data-tab="calendar"><i class="ti ti-calendar"></i> Calendar</button>
+        <button class="tab" data-tab="honey"><i class="ti ti-tool"></i> Home Fix</button>
+        <button class="tab" data-tab="history"><i class="ti ti-history"></i> History</button>
       </div>
 
       <div id="tab-daily" class="section active"><div class="section-label">Daily chores</div><div class="chore-list" id="list-daily"></div></div>
@@ -209,7 +209,7 @@
         <div class="add-form">
           <input id="honey-input" type="text" placeholder="Add a new item..." />
           <select id="honey-priority"><option value="high">High</option><option value="med" selected>Medium</option><option value="low">Low</option></select>
-          <button onclick="addHoney()"><i class="ti ti-plus"></i> Add</button>
+          <button data-action="add-honey"><i class="ti ti-plus"></i> Add</button>
         </div>
       </div>
       <div id="tab-history" class="section">
@@ -227,7 +227,7 @@
     <h3 id="modal-title">Confirm</h3>
     <p id="modal-body"></p>
     <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-cancel" data-action="close-modal">Cancel</button>
       <button id="modal-confirm" class="btn-confirm">Confirm</button>
     </div>
   </div>
@@ -595,7 +595,18 @@ function renderBonus(){
 function renderRewards(){
   const sr=document.getElementById('screen-rows');
   if(sr&&KIDS.length){
-    sr.innerHTML=KIDS.map(k=>`<div class="screen-row"><label style="color:${k.color}">${k.name}</label><span style="font-size:12px;color:#888;margin-right:4px">${Math.max(0,S.pts[k.id]||0)} pts</span><input type="number" id="screen-mins-${k.id}" min="1" placeholder="mins" /><button class="redeem-screen-btn" onclick="redeemScreen('${k.id}')">Redeem</button></div>`).join('');
+    sr.innerHTML='';
+    KIDS.forEach(k=>{
+      const row=document.createElement('div');
+      row.className='screen-row';
+      row.innerHTML='<label style="color:'+k.color+'">'+k.name+'</label><span style="font-size:12px;color:#888;margin-right:4px">'+Math.max(0,S.pts[k.id]||0)+' pts</span><input type="number" id="screen-mins-'+k.id+'" min="1" placeholder="mins" />';
+      const btn=document.createElement('button');
+      btn.className='redeem-screen-btn';
+      btn.textContent='Redeem';
+      btn.addEventListener('click',()=>redeemScreen(k.id));
+      row.appendChild(btn);
+      sr.appendChild(row);
+    });
   }
   const rg=document.getElementById('reward-grid');
   if(!rg)return;
@@ -605,7 +616,12 @@ function renderRewards(){
     const card=document.createElement('div');
     card.className='reward-card';
     const opts=KIDS.map(k=>`<option value="${k.id}">${k.name} (${Math.max(0,S.pts[k.id]||0)} pts)</option>`).join('');
-    card.innerHTML=`<div class="reward-icon"><i class="ti ${r.icon}"></i></div><div class="reward-name">${r.name}</div><div class="reward-cost">${r.pts} pts</div><div class="redeem-row"><select id="rw-who-${r.id}" class="redeem-select">${opts}</select><button class="redeem-btn" onclick="redeemReward('${r.id}')">Redeem</button></div>`;
+    card.innerHTML='<div class="reward-icon"><i class="ti '+r.icon+'"></i></div><div class="reward-name">'+r.name+'</div><div class="reward-cost">'+r.pts+' pts</div><div class="redeem-row"><select id="rw-who-'+r.id+'" class="redeem-select">'+opts+'</select></div>';
+    const redeemBtn=document.createElement('button');
+    redeemBtn.className='redeem-btn';
+    redeemBtn.textContent='Redeem';
+    redeemBtn.addEventListener('click',()=>redeemReward(r.id));
+    card.querySelector('.redeem-row').appendChild(redeemBtn);
     rg.appendChild(card);
   });
 }
@@ -634,7 +650,13 @@ function renderHoney(){
     const done=S.honeyDone[h.id];
     const row=document.createElement('div');
     row.className='honey-row'+(done?' done-h':'');
-    row.innerHTML=`<div class="pdot p-${h.priority}"></div><span class="honey-text">${h.text}</span><span style="font-size:11px;color:#aaa;margin-right:4px">${h.priority}</span><div class="done-toggle ${done?'fixed':''}" onclick="toggleHoney('${h.id}')">${done?'<i class="ti ti-check"></i>':''}</div>`;
+    const pdot=document.createElement('div');pdot.className='pdot p-'+h.priority;
+    const htxt=document.createElement('span');htxt.className='honey-text';htxt.textContent=h.text;
+    const hpri=document.createElement('span');hpri.style.cssText='font-size:11px;color:#aaa;margin-right:4px';hpri.textContent=h.priority;
+    const htoggle=document.createElement('div');htoggle.className='done-toggle'+(done?' fixed':'');
+    if(done)htoggle.innerHTML='<i class="ti ti-check"></i>';
+    htoggle.addEventListener('click',()=>toggleHoney(h.id));
+    row.appendChild(pdot);row.appendChild(htxt);row.appendChild(hpri);row.appendChild(htoggle);
     el.appendChild(row);
   });
 }
@@ -739,11 +761,36 @@ function showToast(msg){
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('datebar').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  // Date bar
+  const db=document.getElementById('datebar');
+  if(db)db.textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+
+  // Wire all data-action buttons
+  document.querySelectorAll('[data-action]').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      const a=this.getAttribute('data-action');
+      if(a==='sync')syncNow();
+      else if(a==='modal-day')openModal('day');
+      else if(a==='modal-week')openModal('week');
+      else if(a==='modal-reset')openModal('reset');
+      else if(a==='close-modal')closeModal();
+      else if(a==='add-honey')addHoney();
+    });
+  });
+
+  // Wire all data-tab buttons
+  document.querySelectorAll('[data-tab]').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      showTab(this.getAttribute('data-tab'), {target:this});
+    });
+  });
+
+  // Modal confirm
   const modalConfirmBtn=document.getElementById('modal-confirm');
-  if(modalConfirmBtn)modalConfirmBtn.onclick=function(){
+  if(modalConfirmBtn)modalConfirmBtn.addEventListener('click', function(){
     executeModalAction(pendingAction);
-  };
+  });
+
   syncNow();
   setInterval(syncNow,60000);
 });
@@ -823,39 +870,4 @@ function fmtEventTime(start, end) {
   const timeOpts = {hour:'numeric', minute:'2-digit', hour12:true, timeZone:'America/Los_Angeles'};
   if (end) {
     const e = parseICALDate(end);
-    if (e) return s.toLocaleTimeString([],timeOpts) + ' – ' + e.toLocaleTimeString([],timeOpts);
-  }
-  return s.toLocaleTimeString([],timeOpts);
-}
-
-function getDayKey(str) {
-  if (!str) return '';
-  // For UTC times, convert to Pacific before extracting the day key
-  if (str.endsWith('Z') || str.includes('T')) {
-    const d = parseICALDate(str);
-    if (d) {
-      const pacific = new Date(d.toLocaleString('en-US', {timeZone:'America/Los_Angeles'}));
-      const y = pacific.getFullYear();
-      const mo = String(pacific.getMonth()+1).padStart(2,'0');
-      const day = String(pacific.getDate()).padStart(2,'0');
-      return ''+y+mo+day;
-    }
-  }
-  const clean = str.replace(/[^0-9T]/g,'');
-  return clean.substr(0,8);
-}
-
-function dayLabel(dateStr) {
-  const y = parseInt(dateStr.substr(0,4));
-  const mo = parseInt(dateStr.substr(4,2))-1;
-  const d = parseInt(dateStr.substr(6,2));
-  const date = new Date(y, mo, d);
-  const today = new Date(); today.setHours(0,0,0,0);
-  const tomorrow = new Date(today); tomorrow.setDate(today.getDate()+1);
-  if (date.getTime() === today.getTime()) return { label: 'Today', isToday: true };
-  if (date.getTime() === tomorrow.getTime()) return { label: 'Tomorrow', isToday: false };
-  return { label: date.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'}), isToday: false };
-}
-
-async function loadCalendars() {
-  const el = document.
+    if (e) re
