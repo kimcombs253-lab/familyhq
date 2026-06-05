@@ -571,9 +571,18 @@ function renderPoints(){
 }
 
 function renderAll(){
-  renderKids();
-  renderChores('daily');renderChores('weekly');renderChores('monthly');
-  renderBonus();renderRewards();renderHistory();renderHoney();renderPoints();
+  const fns=[
+    ()=>renderKids(),
+    ()=>renderChores('daily'),
+    ()=>renderChores('weekly'),
+    ()=>renderChores('monthly'),
+    ()=>renderBonus(),
+    ()=>renderRewards(),
+    ()=>renderHistory(),
+    ()=>renderHoney(),
+    ()=>renderPoints()
+  ];
+  fns.forEach(fn=>{try{fn();}catch(e){console.warn('Render error:',e);}});
 }
 
 let pendingAction=null;
@@ -866,7 +875,4 @@ async function loadCalendars() {
 
       <div id="tab-daily" class="section active"><div class="section-label">Daily chores</div><div class="chore-list" id="list-daily"></div></div>
       <div id="tab-weekly" class="section"><div class="section-label">Weekly chores</div><div class="chore-list" id="list-weekly"></div></div>
-      <div id="tab-monthly" class="section"><div class="section-label">Monthly chores</div><div class="chore-list" id="list-monthly"></div></div>
-      <div id="tab-bonus" class="section">
-        <div class="bonus-wrap">
-          <h3><i class="ti ti-trophy" st
+      <div id="tab-monthly" class="section"><div class="section-label">Monthly chores</div><div c
