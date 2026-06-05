@@ -290,11 +290,21 @@ async function fetchSheet(url){
 
 async function syncNow(){
   setSyncStatus('loading','Syncing...');
+  console.log('syncNow started');
   try{
-    const [kidsData,choresData,rewardsData,honeyData]=await Promise.all([
-      fetchSheet(URLS.kids),fetchSheet(URLS.chores),
-      fetchSheet(URLS.rewards),fetchSheet(URLS.honey)
-    ]);
+    console.log('Fetching kids...');
+    const kidsData = await fetchSheet(URLS.kids);
+    console.log('Kids done:', kidsData.length);
+    console.log('Fetching chores...');
+    const choresData = await fetchSheet(URLS.chores);
+    console.log('Chores done:', choresData.length);
+    console.log('Fetching rewards...');
+    const rewardsData = await fetchSheet(URLS.rewards);
+    console.log('Rewards done:', rewardsData.length);
+    console.log('Fetching honey...');
+    const honeyData = await fetchSheet(URLS.honey);
+    console.log('Honey done:', honeyData.length);
+    const [,,,]=([kidsData,choresData,rewardsData,honeyData]);
     KIDS=kidsData.map(r=>({
       id:(r.id||r.ID||'').toLowerCase().trim(),
       name:r.name||r.Name,
@@ -857,17 +867,4 @@ function parseICALDate(str) {
   const clean = str.replace(/[^0-9T]/g,'');
   const y=clean.substr(0,4),mo=clean.substr(4,2),d=clean.substr(6,2);
   const h=clean.substr(9,2)||'00',mi=clean.substr(11,2)||'00';
-  return new Date(parseInt(y),parseInt(mo)-1,parseInt(d),parseInt(h),parseInt(mi));
-}
-
-function fmtEventTime(start, end) {
-  if (!start) return '';
-  const s = parseICALDate(start);
-  if (!s) return '';
-  // All-day: no T component or pure date
-  const isAllDay = str => str.length === 8 || !str.includes('T');
-  if (isAllDay(start)) return 'All day';
-  const timeOpts = {hour:'numeric', minute:'2-digit', hour12:true, timeZone:'America/Los_Angeles'};
-  if (end) {
-    const e = parseICALDate(end);
-    if (e) re
+  return new Date(parseInt(y),pars
