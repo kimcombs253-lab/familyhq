@@ -137,7 +137,104 @@
   .cal-loading{text-align:center;padding:30px;color:#888;font-size:14px}
   .cal-error{background:#FCEBEB;border:1px solid #E8BFBF;border-radius:8px;padding:12px;font-size:13px;color:#A32D2D;margin-bottom:10px}
 </style>
-<script defer>
+
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <div class="date-bar" id="datebar"></div>
+      <h1><i class="ti ti-home" style="font-size:19px;vertical-align:-2px;margin-right:6px"></i>Family HQ</h1>
+    </div>
+    <div class="hdr-btns">
+      <button class="sm-btn" onclick="syncNow()"><i class="ti ti-refresh"></i> Sync</button>
+      <button class="sm-btn" onclick="openModal('day')"><i class="ti ti-sun"></i> New day</button>
+      <button class="sm-btn" onclick="openModal('week')"><i class="ti ti-calendar-week"></i> New week</button>
+      <button class="sm-btn danger" onclick="openModal('reset')"><i class="ti ti-trash"></i> Reset all</button>
+    </div>
+  </div>
+
+  <div class="sync-bar">
+    <div class="sync-dot loading" id="sync-dot"></div>
+    <span id="sync-msg">Connecting to Google Sheets...</span>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="kids-grid" id="kids-grid"></div>
+    </div>
+
+    <div class="main-content">
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('daily',event)"><i class="ti ti-sun"></i> Daily</button>
+        <button class="tab" onclick="showTab('weekly',event)"><i class="ti ti-calendar-week"></i> Weekly</button>
+        <button class="tab" onclick="showTab('monthly',event)"><i class="ti ti-calendar-month"></i> Monthly</button>
+        <button class="tab" onclick="showTab('bonus',event)"><i class="ti ti-trophy"></i> Bonus</button>
+        <button class="tab" onclick="showTab('rewards',event)"><i class="ti ti-gift"></i> Rewards</button>
+        <button class="tab" onclick="showTab('calendar',event)"><i class="ti ti-calendar"></i> Calendar</button>
+        <button class="tab" onclick="showTab('honey',event)"><i class="ti ti-tool"></i> Home Fix</button>
+        <button class="tab" onclick="showTab('history',event)"><i class="ti ti-history"></i> History</button>
+      </div>
+
+      <div id="tab-daily" class="section active"><div class="section-label">Daily chores</div><div class="chore-list" id="list-daily"></div></div>
+      <div id="tab-weekly" class="section"><div class="section-label">Weekly chores</div><div class="chore-list" id="list-weekly"></div></div>
+      <div id="tab-monthly" class="section"><div class="section-label">Monthly chores</div><div class="chore-list" id="list-monthly"></div></div>
+      <div id="tab-bonus" class="section">
+        <div class="bonus-wrap">
+          <h3><i class="ti ti-trophy" style="font-size:15px;vertical-align:-2px;margin-right:5px"></i>Bonus chores — pick one to earn extra points!</h3>
+          <div class="chore-list" id="list-bonus"></div>
+        </div>
+      </div>
+      <div id="tab-rewards" class="section">
+        <div class="screen-card">
+          <h3><i class="ti ti-device-tv" style="font-size:15px;vertical-align:-2px;margin-right:5px"></i>Screen time — 1 pt = 1 minute</h3>
+          <div id="screen-rows"></div>
+        </div>
+        <div class="section-label">Outings & experiences</div>
+        <div class="reward-grid" id="reward-grid"></div>
+      </div>
+      <div id="tab-calendar" class="section">
+        <div class="cal-header">
+          <h3><i class="ti ti-calendar" style="font-size:16px;vertical-align:-2px;margin-right:5px"></i>Upcoming events</h3>
+          <div class="cal-legend">
+            <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#534AB7"></div>Kim &amp; Kids</div>
+            <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#1A8CD8"></div>Weather</div>
+          </div>
+        </div>
+        <div id="cal-content"><div class="cal-loading"><i class="ti ti-calendar" style="font-size:24px;display:block;margin-bottom:8px"></i>Loading calendar...</div></div>
+      </div>
+      <div id="tab-honey" class="section">
+        <div class="section-label">Home Fix list</div>
+        <div class="honey-list" id="list-honey"></div>
+        <div class="add-form">
+          <input id="honey-input" type="text" placeholder="Add a new item..." />
+          <select id="honey-priority"><option value="high">High</option><option value="med" selected>Medium</option><option value="low">Low</option></select>
+          <button onclick="addHoney()"><i class="ti ti-plus"></i> Add</button>
+        </div>
+      </div>
+      <div id="tab-history" class="section">
+        <div class="section-label">Point history</div>
+        <div class="hist-list" id="hist-list"></div>
+      </div>
+    </div><!-- end main-content -->
+  </div><!-- end layout -->
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h3 id="modal-title">Confirm</h3>
+    <p id="modal-body"></p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button id="modal-confirm" class="btn-confirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
 const BASE='https://docs.google.com/spreadsheets/d/e/2PACX-1vR9ARbtKPKSN5otnR9T5XE5D6uumEEtVHt4939HPmH-ufRDL6CEeZepknX0T4jCLZRPXXHPSbi3HjzY/pub?single=true&output=csv';
 const URLS={
   chores:  BASE+'&gid=0',
@@ -296,8 +393,9 @@ function kidName(id){const k=KIDS.find(k=>k.id===id);return k?k.name:id;}
 function showTab(t,e){
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  if(e)e.target.closest('.tab').classList.add('active');
-  document.getElementById('tab-'+t).classList.add('active');
+  if(e){const tb=e.target.closest('.tab');if(tb)tb.classList.add('active');}
+  const sec=document.getElementById('tab-'+t);
+  if(sec)sec.classList.add('active');
   if(t==='calendar')loadCalendars();
 }
 
@@ -760,119 +858,4 @@ function dayLabel(dateStr) {
 }
 
 async function loadCalendars() {
-  const el = document.getElementById('cal-content');
-  if (!el) return;
-  el.innerHTML = '<div class="cal-loading"><i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>Loading events...</div>';
-  
-  const today = new Date(); today.setHours(0,0,0,0);
-  const cutoff = new Date(today); cutoff.setDate(today.getDate() + 5);
-  const todayKey = today.toISOString().replace(/-/g,'').substr(0,8);
-  const cutoffKey = cutoff.toISOString().replace(/-/g,'').substr(0,8);
-
-  let allEvents = [];
-  let errors = [];
-
-  for (const cal of CALENDARS) {
-    try {
-      const text = await fetchWithProxy(cal.url);
-      const events = parseICAL(text);
-      events.forEach(e => {
-        const key = getDayKey(e.start);
-        if (key >= todayKey && key <= cutoffKey) {
-          allEvents.push({ ...e, calColor: cal.color, calName: cal.name });
-        }
-      });
-    } catch(err) {
-      errors.push(cal.name + ': ' + err.message);
-    }
-  }
-
-  // Group by day
-  const byDay = {};
-  allEvents.forEach(e => {
-    const key = getDayKey(e.start);
-    if (!byDay[key]) byDay[key] = [];
-    byDay[key].push(e);
-  });
-
-  // Sort days
-  const sortedDays = Object.keys(byDay).sort();
-
-  let html = '';
-  if (errors.length) {
-    html += '<div class="cal-error"><i class="ti ti-alert-circle" style="vertical-align:-2px;margin-right:4px"></i>Could not load: ' + errors.join(', ') + '</div>';
-  }
-
-  if (sortedDays.length === 0 && errors.length === 0) {
-    html += '<div class="cal-empty">No events in the next 5 days 🎉</div>';
-  }
-
-  // Add empty today if no events
-  if (!byDay[todayKey]) {
-    const dl = dayLabel(todayKey);
-    html += '<div class="cal-day-block"><div class="cal-day-label today">Today</div><div class="cal-empty">No events today</div></div>';
-  }
-
-  sortedDays.forEach(dayKey => {
-    const dl = dayLabel(dayKey);
-    const evts = byDay[dayKey].sort((a,b) => (a.start||'').localeCompare(b.start||''));
-    html += '<div class="cal-day-block">';
-    html += '<div class="cal-day-label' + (dl.isToday ? ' today' : '') + '">' + dl.label + '</div>';
-    evts.forEach(e => {
-      html += '<div class="cal-event">';
-      html += '<div class="cal-event-bar" style="background:' + e.calColor + '"></div>';
-      html += '<div class="cal-event-body">';
-      html += '<div class="cal-event-title">' + (e.title||'(no title)') + '</div>';
-      html += '<div class="cal-event-time">' + fmtEventTime(e.start, e.end) + ' &nbsp;·&nbsp; <span style="color:' + e.calColor + '">' + e.calName + '</span></div>';
-      html += '</div></div>';
-    });
-    html += '</div>';
-  });
-
-  el.innerHTML = html;
-}
-
-// Calendar loads via showTab above
-
-</script>
-</head>
-<body>
-<div class="app">
-  <div class="header">
-    <div>
-      <div class="date-bar" id="datebar"></div>
-      <h1><i class="ti ti-home" style="font-size:19px;vertical-align:-2px;margin-right:6px"></i>Family HQ</h1>
-    </div>
-    <div class="hdr-btns">
-      <button class="sm-btn" onclick="syncNow()"><i class="ti ti-refresh"></i> Sync</button>
-      <button class="sm-btn" onclick="openModal('day')"><i class="ti ti-sun"></i> New day</button>
-      <button class="sm-btn" onclick="openModal('week')"><i class="ti ti-calendar-week"></i> New week</button>
-      <button class="sm-btn danger" onclick="openModal('reset')"><i class="ti ti-trash"></i> Reset all</button>
-    </div>
-  </div>
-
-  <div class="sync-bar">
-    <div class="sync-dot loading" id="sync-dot"></div>
-    <span id="sync-msg">Connecting to Google Sheets...</span>
-  </div>
-
-  <div class="layout">
-    <div class="sidebar">
-      <div class="kids-grid" id="kids-grid"></div>
-    </div>
-
-    <div class="main-content">
-      <div class="tabs">
-        <button class="tab active" onclick="showTab('daily',event)"><i class="ti ti-sun"></i> Daily</button>
-        <button class="tab" onclick="showTab('weekly',event)"><i class="ti ti-calendar-week"></i> Weekly</button>
-        <button class="tab" onclick="showTab('monthly',event)"><i class="ti ti-calendar-month"></i> Monthly</button>
-        <button class="tab" onclick="showTab('bonus',event)"><i class="ti ti-trophy"></i> Bonus</button>
-        <button class="tab" onclick="showTab('rewards',event)"><i class="ti ti-gift"></i> Rewards</button>
-        <button class="tab" onclick="showTab('calendar',event)"><i class="ti ti-calendar"></i> Calendar</button>
-        <button class="tab" onclick="showTab('honey',event)"><i class="ti ti-tool"></i> Home Fix</button>
-        <button class="tab" onclick="showTab('history',event)"><i class="ti ti-history"></i> History</button>
-      </div>
-
-      <div id="tab-daily" class="section active"><div class="section-label">Daily chores</div><div class="chore-list" id="list-daily"></div></div>
-      <div id="tab-weekly" class="section"><div class="section-label">Weekly chores</div><div class="chore-list" id="list-weekly"></div></div>
-      <div id="tab-monthly" class="section"><div class="section-label">Monthly chores</div><div c
+  const el = document.
